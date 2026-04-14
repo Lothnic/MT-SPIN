@@ -16,8 +16,11 @@ models/
 *.pth
 
 # Data
-data/processed/
-data/raw/
+data/
+data/processed_dataset/
+data/test\ dataset/
+data/train\ dataset/
+*.parquet
 
 # SPIN
 SPIN/
