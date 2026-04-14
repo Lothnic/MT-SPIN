@@ -9,7 +9,7 @@ import numpy as np
 def main():
     print("Loading test dataset...")
     # Load our leakage-free test set (128 examples)
-    test_df = load_dataset("parquet", data_files={"test": "data/processed/test.parquet"})["test"]
+    test_df = load_dataset("parquet", data_files={"test": "data/processed_dataset/test.parquet"})["test"]
     
     print("Loading base model and tokenizer in bfloat16...")
     base_model_name = "facebook/nllb-200-distilled-600M"

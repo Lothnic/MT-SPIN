@@ -29,23 +29,29 @@ The primary challenge of this project was severe unalignment and language-swappi
 *   **Metrics**: BLEU: 12.13 | chrF: 41.01
 *   **Observations**: The model began producing meaningful translation attempts for the first time.
 
-### Experiment 3: Tiered Expansion (Golden + Silver Set)
-*   **Strategy**: Expanded the similarity threshold to include "Silver" data (> 0.60) to increase model coverage and robustness.
-*   **Dataset Size**: 13,831 pairs (5,731 Gold + 8,100 Silver).
-*   **Result**: **Optimal Performance**.
-*   **Metrics**: BLEU: 14.69 | chrF: 44.80 | NSSS: 0.8722
-*   **Observations**: The increased data volume improved linguistic nuance. Core roots (e.g., "कुथू") were predicted more accurately than the Golden-only version.
+### Experiment 3: Tiered Expansion (Golden + Silver Set) - 5 Epochs
+*   **Strategy**: Expanded the similarity threshold to include "Silver" data (> 0.60).
+*   **Dataset Size**: 13,831 pairs.
+*   **Metrics**: BLEU: 14.69 | chrF: 44.80 | NSSS (Ref): 0.8722 | NSSS (Src): 0.9081
+
+### Experiment 4: Extended Fine-Tuning - 10 Epochs
+*   **Strategy**: Same as Exp 3, but increased training duration to 10 epochs.
+*   **Metrics**: **BLEU: 16.24** | **chrF: 46.20** | **NSSS (Ref): 0.8767** | **NSSS (Src): 0.8908**
+*   **Observations**: 
+    *   **Success**: Highest overlap with reference text (BLEU +1.55).
+    *   **Tradeoff**: NSSS (Src) decreased. This suggests the model is becoming less of a "literal/Hindi-like" translator and is adapting more deeply to the specific Kangri dialectal patterns in the reference set. The model is increasingly "speaking Kangri" rather than "translating Hindi words".
 
 ---
 
 ## 3. Comparative Metrics Table
 
-| Metric | Exp 1 (Raw) | Exp 2 (Gold) | Exp 3 (Gold+Silver) |
-| :--- | :---: | :---: | :---: |
-| **Training Pairs** | 10,000+ (Noisy) | 5,731 | **13,831** |
-| **BLEU Score** | 0.03 | 12.13 | **14.69** |
-| **chrF Score** | 5.11 | 41.01 | **44.80** |
-| **NSSS (Semantic)** | - | 0.84 (est) | **0.8722** |
+| Metric | Exp 1 (Raw) | Exp 2 (Gold) | Exp 3 (5 Ep) | Exp 4 (10 Ep) |
+| :--- | :---: | :---: | :---: | :---: |
+| **Training Pairs** | 10,000+ (Noisy) | 5,731 | 13,831 | 13,831 |
+| **BLEU Score** | 0.03 | 12.13 | 14.69 | **16.24** |
+| **chrF Score** | 5.11 | 41.01 | 44.80 | **46.20** |
+| **NSSS (Ref)** | - | - | 0.8722 | **0.8767** |
+| **NSSS (Src)** | - | - | **0.9081** | 0.8908 |
 
 *NSSS: Neural Semantic Similarity Score (measured against Reference).*
 
@@ -70,4 +76,4 @@ The primary challenge of this project was severe unalignment and language-swappi
 ---
 
 ## 6. Next Steps: SPIN
-The model is now ready for **Stage 2: Self-Play Fine-Tuning**. The high NSSS score (0.908 vs Source) indicates the model's output can be used to generate diverse candidate pairs for iterative RL/DPO-style training.
+The model is now ready for **Stage 2: Self-Play Fine-Tuning**. Would start with SPIN ASAP.

@@ -30,3 +30,7 @@ SPIN/
 logs/
 wandb/
 *.log
+
+
+# personal notes
+notes/

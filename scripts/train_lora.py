@@ -17,8 +17,8 @@ def main():
     tokenizer = AutoTokenizer.from_pretrained(base_model_name, src_lang="hin_Deva", tgt_lang="hin_Deva")
 
     print("Loading datasets...")
-    train_file = "data/processed/train_combined.parquet"
-    test_file = "data/processed/test.parquet"
+    train_file = "data/processed_dataset/train_combined.parquet"
+    test_file = "data/processed_dataset/test.parquet"
     dataset = load_dataset("parquet", data_files={"train": train_file, "test": test_file})
 
     def preprocess_function(examples):
@@ -61,7 +61,7 @@ def main():
         per_device_eval_batch_size=8,
         weight_decay=0.01,
         save_total_limit=3,
-        num_train_epochs=5,
+        num_train_epochs=10,
         predict_with_generate=True,
         bf16=True,
         push_to_hub=False,
