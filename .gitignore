@@ -16,11 +16,7 @@ models/
 *.pth
 
 # Data
-data/
-data/processed_dataset/
-data/test\ dataset/
-data/train\ dataset/
-*.parquet
+# Tracked for sharing
 
 # SPIN
 SPIN/
