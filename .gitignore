@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+.env
+
+# Models and Weights
+models/
+*.bin
+*.model
+*.safetensors
+*.pt
+*.pth
+
+# Data
+data/processed/
+data/raw/
+
+# SPIN
+SPIN/
+
+# IDEs
+.vscode/
+.idea/
+.DS_Store
+
+# Logs
+logs/
+wandb/
+*.log
