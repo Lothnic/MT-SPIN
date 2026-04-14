@@ -1,3 +1,4 @@
+import argparse
 import torch
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 from datasets import load_dataset
@@ -7,6 +8,14 @@ import evaluate
 import numpy as np
 
 def main():
+    parser = argparse.ArgumentParser(description="Evaluate a LoRA adapter on the Kangri test set")
+    parser.add_argument("--adapter", type=str,
+                        default="models/nllb-200-kangri-lora/final_adapter",
+                        help="Path to the LoRA adapter to evaluate")
+    parser.add_argument("--name", type=str, default="",
+                        help="Name label for this evaluation run")
+    args = parser.parse_args()
+
     print("Loading test dataset...")
     # Load our leakage-free test set (128 examples)
     test_df = load_dataset("parquet", data_files={"test": "data/processed_dataset/test.parquet"})["test"]
@@ -25,7 +34,7 @@ def main():
     )
     
     # Load LoRA adapter
-    adapter_path = "models/nllb-200-kangri-lora/final_adapter"
+    adapter_path = args.adapter
     print(f"Loading adapter from {adapter_path}...")
     model = PeftModel.from_pretrained(base_model, adapter_path)
     model.eval()
@@ -52,7 +61,9 @@ def main():
             generated_tokens = model.generate(
                 **inputs,
                 forced_bos_token_id=tokenizer.convert_tokens_to_ids("hin_Deva"),
-                max_length=128
+                max_length=128,
+                repetition_penalty=1.2,
+                no_repeat_ngram_size=3,
             )
             
         decoded_pred = tokenizer.decode(generated_tokens[0], skip_special_tokens=True)
