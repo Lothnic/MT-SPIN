@@ -14,6 +14,7 @@ Output: HuggingFace dataset saved to disk with columns:
 
 import argparse
 import os
+import warnings
 import torch
 import sacrebleu
 from tqdm import tqdm
@@ -45,15 +46,14 @@ def load_model_and_tokenizer(adapter_path: str):
     return model, tokenizer
 
 
-def generate_candidates(model, tokenizer, source: str, num_cands: int):
+def generate_candidates_batch(model, tokenizer, sources: list[str], num_cands: int):
     """
-    Generate num_cands diverse translations for a single source sentence.
-    Uses temperature sampling with top-p for diversity (memory-safe on 8GB GPU).
-    Returns List[str] — num_cands candidate translations.
+    Generate num_cands diverse translations for a batch of source sentences.
+    Returns List[List[str]] — num_cands candidates per source.
     """
     lang_id = tokenizer.convert_tokens_to_ids(TGT_LANG)
     inputs = tokenizer(
-        source, return_tensors="pt", padding=True,
+        sources, return_tensors="pt", padding=True,
         truncation=True, max_length=MAX_SRC_LEN
     ).to(model.device)
 
@@ -61,7 +61,7 @@ def generate_candidates(model, tokenizer, source: str, num_cands: int):
         outputs = model.generate(
             **inputs,
             forced_bos_token_id=lang_id,
-            max_new_tokens=MAX_TGT_LEN,
+            max_length=MAX_TGT_LEN,
             do_sample=True,
             temperature=0.8,
             top_p=0.95,
@@ -69,7 +69,10 @@ def generate_candidates(model, tokenizer, source: str, num_cands: int):
         )
 
     decoded = tokenizer.batch_decode(outputs, skip_special_tokens=True)
-    return decoded
+    # outputs has shape [batch_size * num_cands, seq_len]
+    # reshape to [batch_size, num_cands]
+    batch_size = len(sources)
+    return [decoded[i * num_cands : (i + 1) * num_cands] for i in range(batch_size)]
 
 
 def score_chrf(hypothesis: str, reference: str) -> float:
@@ -93,6 +96,10 @@ def select_rejected(candidates: list[str], reference: str, curriculum: str = "ea
 
 
 def main():
+    # Suppress noisy HF generation warnings
+    warnings.filterwarnings("ignore", message=".*max_new_tokens.*max_length.*")
+    warnings.filterwarnings("ignore", message=".*`torch_dtype` is deprecated.*")
+
     parser = argparse.ArgumentParser(description="MT-SPIN Stage 1: Generate preference pairs")
     parser.add_argument("--adapter", type=str, default="models/nllb-200-kangri-lora/final_adapter",
                         help="Path to the LoRA adapter checkpoint")
@@ -119,21 +126,28 @@ def main():
     print(f"Loading model from {args.adapter}...")
     model, tokenizer = load_model_and_tokenizer(args.adapter)
 
-    # Generate preference pairs
+    # Generate preference pairs in batches
     records = []
-    for i in tqdm(range(len(sources)), desc="Generating candidates"):
-        src = sources[i]
-        gold = targets[i]
+    num_batches = (len(sources) + args.batch_size - 1) // args.batch_size
+    for batch_idx in tqdm(range(num_batches), desc="Generating candidates"):
+        start = batch_idx * args.batch_size
+        end = min(start + args.batch_size, len(sources))
+        batch_sources = sources[start:end]
+        batch_targets = targets[start:end]
 
-        candidates = generate_candidates(model, tokenizer, src, args.num_candidates)
-        rejected, chrf_rej = select_rejected(candidates, gold, args.curriculum)
-        records.append({
-            "prompt":        src,
-            "chosen":        gold,
-            "rejected":      rejected,
-            "chrf_chosen":   1.0,
-            "chrf_rejected": chrf_rej,
-        })
+        batch_candidates = generate_candidates_batch(
+            model, tokenizer, batch_sources, args.num_candidates
+        )
+
+        for src, gold, candidates in zip(batch_sources, batch_targets, batch_candidates):
+            rejected, chrf_rej = select_rejected(candidates, gold, args.curriculum)
+            records.append({
+                "prompt":        src,
+                "chosen":        gold,
+                "rejected":      rejected,
+                "chrf_chosen":   1.0,
+                "chrf_rejected": chrf_rej,
+            })
 
     # Save
     os.makedirs(args.output, exist_ok=True)
